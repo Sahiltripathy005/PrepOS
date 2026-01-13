@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  goals            Goal[]
+  tasks            Task[]
+  attemptLogs      AttemptLog[]
+  topicStats       TopicStat[]
+  readinessHistory ReadinessHistory[]
+}
+
+model Goal {
+  id              String   @id @default(uuid())
+  userId          String
+  targetRole      String
+  targetCompanies Json
+  timelineDays    Int
+  hoursPerDay     Int
+  startDate       DateTime
+  wDsa            Float
+  wApti           Float
+  wCs             Float
+  wDev            Float
+  difficultyCurve String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Topic {
+  id              Int      @id @default(autoincrement())
+  category        String
+  parentId        Int?
+  name            String
+  importanceScore Int
+
+  parent   Topic?  @relation("TopicToTopic", fields: [parentId], references: [id], onDelete: SetNull)
+  children Topic[] @relation("TopicToTopic")
+
+  tasks       Task[]
+  attemptLogs AttemptLog[]
+  topicStats  TopicStat[]
+
+  @@index([category])
+  @@index([parentId])
+}
+
+model Task {
+  id        String   @id @default(uuid())
+  userId    String
+  date      DateTime
+  type      String
+  topicId   Int?
+  title     String
+  durationMin Int
+  difficulty String
+  status    String
+  createdBy String
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic Topic? @relation(fields: [topicId], references: [id], onDelete: SetNull)
+
+  attemptLogs AttemptLog[]
+
+  @@index([userId])
+  @@index([date])
+  @@index([topicId])
+}
+
+model AttemptLog {
+  id           String   @id @default(uuid())
+  userId       String
+  taskId       String?
+  topicId      Int
+  difficulty   String
+  correct      Boolean
+  timeTakenSec Int
+  confidence   Int
+  mistakeTag   String
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task Task? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([topicId])
+  @@index([createdAt])
+}
+
+model TopicStat {
+  id              String   @id @default(uuid())
+  userId          String
+  topicId         Int
+  attemptsTotal   Int      @default(0)
+  correctTotal    Int      @default(0)
+  avgTimeSec      Int      @default(0)
+  masteryScore    Float    @default(0)
+  lastPracticedAt DateTime?
+  nextRevisionDate DateTime?
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, topicId])
+  @@index([userId])
+  @@index([topicId])
+  @@index([nextRevisionDate])
+}
+
+model ReadinessHistory {
+  id      String   @id @default(uuid())
+  userId  String
+  date    DateTime
+  overall Float
+  dsa     Float
+  apti    Float
+  cs      Float
+  dev     Float
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([date])
+}
