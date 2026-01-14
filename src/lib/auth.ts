@@ -1,6 +1,8 @@
+// src/lib/auth.ts
 import jwt, { type Secret } from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { NextRequest } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 type JwtPayload = {
   sub: string; // userId
@@ -68,4 +70,47 @@ export function getBearerToken(req: NextRequest): string | null {
   if (type !== "Bearer" || !token) return null;
 
   return token;
+}
+
+/**
+ * Returns user row (id,email,name...) or null.
+ * Does NOT throw.
+ */
+export async function getUserFromRequest(req: NextRequest) {
+  const token = getBearerToken(req);
+  if (!token) return null;
+
+  let payload: JwtPayload;
+  try {
+    payload = verifyAccessToken(token);
+  } catch {
+    return null;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: payload.sub },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      createdAt: true,
+    },
+  });
+
+  if (!user) return null;
+
+  // extra guard: token email must match db email
+  if (user.email !== payload.email) return null;
+
+  return user;
+}
+
+/**
+ * Must be used in all protected routes.
+ * Throws Error("UNAUTHORIZED") when invalid.
+ */
+export async function requireUser(req: NextRequest) {
+  const user = await getUserFromRequest(req);
+  if (!user) throw new Error("UNAUTHORIZED");
+  return user;
 }

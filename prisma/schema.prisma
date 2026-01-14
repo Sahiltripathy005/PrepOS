@@ -66,8 +66,10 @@ model Task {
   title     String
   durationMin Int
   difficulty String
-  status    String
-  createdBy String
+  
+  status    String   @default("pending")
+  createdBy String   @default("system")
+
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   topic Topic? @relation(fields: [topicId], references: [id], onDelete: SetNull)
@@ -77,6 +79,9 @@ model Task {
   @@index([userId])
   @@index([date])
   @@index([topicId])
+  @@index([userId, date])
+  @@unique([userId, date, title])
+
 }
 
 model AttemptLog {
