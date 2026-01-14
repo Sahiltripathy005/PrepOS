@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { attemptCreateSchema } from "@/lib/validators";
 import { requireUser } from "@/lib/auth";
+import { updateTopicStatAfterAttempt } from "@/lib/scheduler/spacedRepetition";
 
 function getErrorMessage(err: unknown): string | null {
   if (typeof err === "object" && err !== null && "message" in err) {
@@ -58,21 +59,85 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 5) Save attempt
-    const attempt = await prisma.attemptLog.create({
-      data: {
-        userId: user.id,
-        taskId: taskId ?? null,
-        topicId,
-        difficulty, // stored as string in schema
-        correct,
-        timeTakenSec,
-        confidence,
-        mistakeTag,
-      },
+    const now = new Date();
+
+    // ✅ 5) Atomic write (attempt + topic stat)
+    const result = await prisma.$transaction(async (tx) => {
+      // Save attempt
+      const attempt = await tx.attemptLog.create({
+        data: {
+          userId: user.id,
+          taskId: taskId ?? null,
+          topicId,
+          difficulty, // stored as string in schema
+          correct,
+          timeTakenSec,
+          confidence,
+          mistakeTag,
+        },
+      });
+
+      // Fetch previous TopicStat snapshot
+      const prevStat = await tx.topicStat.findUnique({
+        where: {
+          userId_topicId: {
+            userId: user.id,
+            topicId,
+          },
+        },
+        select: {
+          attemptsTotal: true,
+          correctTotal: true,
+          avgTimeSec: true,
+        },
+      });
+
+      // Compute new stats
+      const computed = updateTopicStatAfterAttempt({
+        prev: prevStat,
+        attempt: {
+          correct,
+          timeTakenSec,
+          difficulty,
+        },
+        now,
+      });
+
+      // Upsert TopicStat
+      const topicStat = await tx.topicStat.upsert({
+        where: {
+          userId_topicId: {
+            userId: user.id,
+            topicId,
+          },
+        },
+        create: {
+          userId: user.id,
+          topicId,
+          attemptsTotal: computed.attemptsTotal,
+          correctTotal: computed.correctTotal,
+          avgTimeSec: computed.avgTimeSec,
+          masteryScore: computed.masteryScore,
+          lastPracticedAt: now,
+          nextRevisionDate: computed.nextRevisionDate,
+        },
+        update: {
+          attemptsTotal: computed.attemptsTotal,
+          correctTotal: computed.correctTotal,
+          avgTimeSec: computed.avgTimeSec,
+          masteryScore: computed.masteryScore,
+          lastPracticedAt: now,
+          nextRevisionDate: computed.nextRevisionDate,
+        },
+      });
+
+      return { attempt, topicStat };
     });
 
-    return NextResponse.json({ attempt }, { status: 201 });
+    return NextResponse.json(
+      { attempt: result.attempt, topicStat: result.topicStat },
+      { status: 201 }
+    );
   } catch (err: unknown) {
     const msg = getErrorMessage(err);
 
