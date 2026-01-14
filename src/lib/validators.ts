@@ -49,3 +49,19 @@ export const goalSchema = z
   });
 
 export type GoalInput = z.infer<typeof goalSchema>;
+
+/**
+ * Attempt Logging Schema
+ * POST /api/attempts/create
+ */
+export const attemptCreateSchema = z.object({
+  topicId: z.number().int().positive("topicId must be a positive integer"),
+  difficulty: z.enum(["easy", "med", "hard"]),
+  correct: z.boolean(),
+  timeTakenSec: z.number().int().min(1).max(60 * 60), // 1 sec to 1 hour
+  confidence: z.number().int().min(1).max(5),
+  mistakeTag: z.string().min(1).max(120),
+  taskId: z.string().uuid().optional(),
+});
+
+export type AttemptCreateInput = z.infer<typeof attemptCreateSchema>;
