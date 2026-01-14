@@ -7,17 +7,16 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  name         String
-  email        String   @unique
-  passwordHash String
-  createdAt    DateTime @default(now())
-
-  goals            Goal[]
-  tasks            Task[]
+  id               String             @id @default(uuid())
+  name             String
+  email            String             @unique
+  passwordHash     String
+  createdAt        DateTime           @default(now())
   attemptLogs      AttemptLog[]
-  topicStats       TopicStat[]
+  goals            Goal[]
   readinessHistory ReadinessHistory[]
+  tasks            Task[]
+  topicStats       TopicStat[]
 }
 
 model Goal {
@@ -33,55 +32,47 @@ model Goal {
   wCs             Float
   wDev            Float
   difficultyCurve String
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
 model Topic {
-  id              Int      @id @default(autoincrement())
-  category        String
+  id              Int          @id @default(autoincrement())
   parentId        Int?
   name            String
   importanceScore Int
-
-  parent   Topic?  @relation("TopicToTopic", fields: [parentId], references: [id], onDelete: SetNull)
-  children Topic[] @relation("TopicToTopic")
-
-  tasks       Task[]
-  attemptLogs AttemptLog[]
-  topicStats  TopicStat[]
+  category        String
+  attemptLogs     AttemptLog[]
+  tasks           Task[]
+  parent          Topic?       @relation("TopicToTopic", fields: [parentId], references: [id])
+  children        Topic[]      @relation("TopicToTopic")
+  topicStats      TopicStat[]
 
   @@index([category])
   @@index([parentId])
 }
 
 model Task {
-  id        String   @id @default(uuid())
-  userId    String
-  date      DateTime
-  type      String
-  topicId   Int?
-  title     String
+  id          String       @id @default(uuid())
+  userId      String
+  date        DateTime
+  topicId     Int?
+  title       String
   durationMin Int
-  difficulty String
-  
-  status    String   @default("pending")
-  createdBy String   @default("system")
-
-
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  topic Topic? @relation(fields: [topicId], references: [id], onDelete: SetNull)
-
+  type        String
+  difficulty  String
+  status      String       @default("pending")
+  createdBy   String       @default("system")
   attemptLogs AttemptLog[]
+  topic       Topic?       @relation(fields: [topicId], references: [id])
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, date, title])
   @@index([userId])
   @@index([date])
   @@index([topicId])
   @@index([userId, date])
-  @@unique([userId, date, title])
-
 }
 
 model AttemptLog {
@@ -89,16 +80,15 @@ model AttemptLog {
   userId       String
   taskId       String?
   topicId      Int
-  difficulty   String
   correct      Boolean
   timeTakenSec Int
   confidence   Int
   mistakeTag   String
   createdAt    DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  task Task? @relation(fields: [taskId], references: [id], onDelete: SetNull)
-  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  difficulty   String
+  task         Task?    @relation(fields: [taskId], references: [id])
+  topic        Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([topicId])
@@ -106,18 +96,17 @@ model AttemptLog {
 }
 
 model TopicStat {
-  id              String   @id @default(uuid())
-  userId          String
-  topicId         Int
-  attemptsTotal   Int      @default(0)
-  correctTotal    Int      @default(0)
-  avgTimeSec      Int      @default(0)
-  masteryScore    Float    @default(0)
-  lastPracticedAt DateTime?
+  id               String    @id @default(uuid())
+  userId           String
+  topicId          Int
+  attemptsTotal    Int       @default(0)
+  correctTotal     Int       @default(0)
+  avgTimeSec       Int       @default(0)
+  masteryScore     Float     @default(0)
+  lastPracticedAt  DateTime?
   nextRevisionDate DateTime?
-
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  topic            Topic     @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, topicId])
   @@index([userId])
@@ -134,8 +123,7 @@ model ReadinessHistory {
   apti    Float
   cs      Float
   dev     Float
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([date])
