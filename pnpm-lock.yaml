@@ -178,6 +178,9 @@ importers:
 
   packages/api-client:
     dependencies:
+      '@placementos/types':
+        specifier: workspace:*
+        version: link:../types
       axios:
         specifier: ^1.6.8
         version: 1.18.1
