@@ -1,8 +1,2 @@
-export interface UserProfile {
-  id: string;
-  email: string;
-  username: string;
-  role: "USER" | "FACULTY" | "ADMIN";
-  createdAt: Date;
-  updatedAt: Date;
-}
+export * from "./constants.js";
+export * from "./types.js";

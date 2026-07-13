@@ -1,20 +1,19 @@
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
+import { ExpressAppFactory, setupGracefulShutdown } from "./api-foundation/bootstrap.js";
+import { ConnectionManager } from "./database/connection.js";
+import { config } from "./config/index.js";
 import { logger } from "./shared/logger.js";
+import { ApiDx } from "./api-foundation/dx.js";
 
-dotenv.config();
+const app = ExpressAppFactory.create();
 
-const app = express();
-const PORT = process.env.PORT || 4000;
+// Connect to the database during initialization
+await ConnectionManager.connect();
 
-app.use(cors());
-app.use(express.json());
-
-app.get("/api/health", (req, res) => {
-  res.json({ status: "healthy", timestamp: new Date().toISOString() });
+const server = app.listen(config.PORT, () => {
+  ApiDx.printDiagnostics(config.PORT);
+  logger.info(`Server successfully started on port ${config.PORT}`);
 });
 
-app.listen(PORT, () => {
-  logger.info(`Server running on port ${PORT}`);
-});
+setupGracefulShutdown(server);
+
+export { app, server };

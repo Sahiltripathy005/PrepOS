@@ -1,3 +1,4 @@
 {
-  "extends": "../../configs/.eslintrc.json"
+  "extends": "../../configs/.eslintrc.json",
+  "ignorePatterns": ["dist"]
 }
