@@ -21,11 +21,17 @@ const configSchema = z.object({
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info")
 });
 
+export class ConfigurationError extends Error {
+  constructor(public zodError: z.ZodError) {
+    super(`Invalid environment configuration:\n${zodError.errors.map(e => ` - ${e.path.join(".")}: ${e.message}`).join("\n")}`);
+    this.name = "ConfigurationError";
+  }
+}
+
 const parsed = configSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  console.error("❌ Invalid environment configuration:", parsed.error.format());
-  process.exit(1);
+  throw new ConfigurationError(parsed.error);
 }
 
 export const config = parsed.data;

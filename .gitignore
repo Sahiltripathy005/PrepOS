@@ -6,3 +6,14 @@ dist
 .turbo
 *.log
 .DS_Store
+
+# Local uploads
+uploads/
+
+# Local storage
+storage/
+
+# SQLite (if ever used for testing)
+*.db
+*.sqlite
+*.sqlite3
