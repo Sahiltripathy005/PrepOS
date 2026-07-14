@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "./client.js";
 import { logger } from "../shared/logger.js";
 
@@ -18,8 +19,7 @@ export async function clearDatabase(): Promise<void> {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function withRollback(fn: (tx: any) => Promise<void>): Promise<void> {
+export async function withRollback(fn: (tx: Prisma.TransactionClient) => Promise<void>): Promise<void> {
   try {
     await prisma.$transaction(async (tx) => {
       await fn(tx);
@@ -33,7 +33,7 @@ export async function withRollback(fn: (tx: any) => Promise<void>): Promise<void
 }
 
 export class FactoryBuilder<CreateDTO> {
-  constructor(private readonly generatorFn: (index: number) => CreateDTO) {}
+  constructor(private readonly generatorFn: (index: number) => CreateDTO) { }
 
   public build(overrides?: Partial<CreateDTO>, index = 0): CreateDTO {
     return {
